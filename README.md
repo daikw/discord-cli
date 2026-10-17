@@ -1,10 +1,10 @@
-# discord-cli
+# discord-cli (daikw fork)
 
-[![CI](https://github.com/jackwener/discord-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/jackwener/discord-cli/actions/workflows/ci.yml)
+[![CI](https://github.com/daikw/discord-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/daikw/discord-cli/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/kabi_discord_cli.svg)](https://pypi.org/project/kabi-discord-cli/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
 
-> **PyPI package name:** [`kabi-discord-cli`](https://pypi.org/project/kabi-discord-cli/) — install with `uv tool install kabi-discord-cli`
+> Fork of [jackwener/discord-cli](https://github.com/jackwener/discord-cli), adding single-message posting while preserving upstream read, search, and sync commands. The distribution name remains `kabi-discord-cli`; this fork is installed from a locally built wheel, not published to PyPI.
 
 [中文](./README_CN.md)
 
@@ -38,31 +38,67 @@ discord-cli uses the Discord HTTP API with a **user token** from your local sess
 
 ## Installation
 
+Build the reviewed checkout and install its wheel as `discord`:
+
 ```bash
-# PyPI
-uv tool install kabi-discord-cli
-# or
-pipx install kabi-discord-cli
-
-# From GitHub
-uv tool install git+https://github.com/jackwener/discord-cli.git
-
-# From source
-git clone git@github.com:jackwener/discord-cli.git
+git clone https://github.com/daikw/discord-cli.git
 cd discord-cli
-uv sync --extra dev
+uv sync --locked --extra dev
+uv run --no-sync ruff check .
+uv run --no-sync python -m pytest -q
+uv build
+uv export --locked --no-dev --no-emit-project --no-hashes \
+  --format requirements-txt --output-file dist/runtime-constraints.txt
+uv tool install --force --no-build --constraint dist/runtime-constraints.txt \
+  ./dist/kabi_discord_cli-0.2.8+daikw.1-py3-none-any.whl
 ```
 
-Upgrade to the latest version:
+The executable name, `DISCORD_TOKEN`, and upstream database paths are unchanged.
+Existing wrappers that inject `DISCORD_TOKEN` and invoke `~/.local/bin/discord`
+continue to work; credentials should remain outside this repository.
+Installing the upstream PyPI package instead will not include this fork's posting command.
+
+## Posting one message
 
 ```bash
-uv tool upgrade kabi-discord-cli
-# Or: pipx upgrade kabi-discord-cli
+# Offline preview; no token or HTTP request is needed.
+discord dc send CHANNEL_ID 'Message text' --dry-run --json
+
+# Send once using the configured user token, then fetch the returned message ID.
+discord dc send CHANNEL_ID 'Message text' --yes --json
+
+# Read multiline text from stdin without trimming its final newline.
+discord dc send CHANNEL_ID --stdin --yes --json < message.txt
 ```
 
-> **Tip:** Upgrade regularly to avoid unexpected errors from outdated API handling.
+Use an exact channel ID or an existing thread ID. Forum parent channels, new
+threads, attachments, replies, edits, and deletes are not supported by `send`.
+One of `--yes` or `--dry-run` is required. Content must contain non-whitespace
+text and fit Discord's 2000-character limit. Mentions are disabled with
+`allowed_mentions`; content is never split into multiple messages.
 
+The command never automatically retries a POST, including on HTTP 429.
+A valid `retry_after` is reported for 429 responses; wait that long before any
+new attempt. Each send includes a nonce with `enforce_nonce: true`.
+`--nonce VALUE` can reuse a preview's nonce or the same send intent, but should
+never be reused for a different message. Discord only documents deduplication
+for the same author over the past few minutes; it is not a permanent guarantee.
+Running the command again without `--nonce` creates a new nonce and may duplicate
+a previous message.
 
+`sent_verified` means a read-back matched the message ID, channel, and exact
+content. `sent_unverified` preserves the acknowledged ID when verification
+fails. `outcome_unknown` means delivery could not be determined. A nonzero exit
+status does **not** necessarily mean nothing was sent: inspect the channel and
+message ID before retrying. Discord may normalize content, which also causes
+exact verification to fail. Sending does not modify the local SQLite mirror;
+use the existing sync commands when needed.
+
+This remains user-token automation, not the official Bot authentication flow.
+The warning above applies to both reading and posting. Dry-run only validates
+the local request; it does not check account status or channel permissions.
+Upstream's startup `.env` loading still applies, and an external credential
+wrapper may decrypt its files before the CLI starts, even for dry-run.
 
 ## Quick Start
 
@@ -102,6 +138,7 @@ discord timeline --by hour --json
 
 | Command | Description |
 |---------|-------------|
+| `dc send CHANNEL [CONTENT] (--yes\|--dry-run) [--stdin] [--nonce VALUE] [--json]` | Post one text message with read-back verification |
 | `dc guilds [--json]` | List joined guilds |
 | `dc channels GUILD [--json]` | List text channels in a guild |
 | `dc history CHANNEL [-n 1000]` | Fetch message history for one channel |
