@@ -1,7 +1,7 @@
 [project]
 name = "kabi-discord-cli"
-version = "0.2.8+daikw.1"
-description = "Discord CLI for local-first sync, search, export, and agent-friendly retrieval and single-message posting"
+version = "0.2.8+daikw.2"
+description = "Discord CLI for local-first sync, search, export, and agent-friendly retrieval"
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"

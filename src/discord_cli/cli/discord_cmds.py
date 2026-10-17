@@ -20,7 +20,6 @@ from ..client import (
 )
 from ..db import MessageDB
 from ._output import emit_error, emit_structured, structured_output_options
-from .send import dc_send
 
 console = Console(stderr=True)
 
@@ -29,9 +28,6 @@ console = Console(stderr=True)
 def discord_group():
     """Discord operations — list servers, fetch history, sync."""
     pass
-
-
-discord_group.add_command(dc_send)
 
 
 async def _fetch_channel_context(client, channel_id: str) -> dict[str, str | None]:

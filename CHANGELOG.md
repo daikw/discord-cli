@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.8+daikw.2
+
+- Remove user-token message posting; keep Discord access read-only.
+- Use an official Discord bot for posting instead.
+
 ## 0.2.8+daikw.1
 
 - Add `discord dc send` with offline preview, explicit send intent, suppressed mentions, and read-back verification.

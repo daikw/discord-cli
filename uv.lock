@@ -400,7 +400,7 @@ wheels = [
 
 [[package]]
 name = "kabi-discord-cli"
-version = "0.2.8+daikw.1"
+version = "0.2.8+daikw.2"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
